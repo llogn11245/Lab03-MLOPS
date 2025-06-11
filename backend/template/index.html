@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bitcoin Movement Prediction API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #1e1e2f;
+            color: #f4f4f4;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #2d2d44;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            color: #4ee4a6;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            margin-bottom: 25px;
+            color: #c0c0c0;
+        }
+
+        .endpoint-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .endpoint-list li {
+            margin-bottom: 10px;
+        }
+
+        .endpoint {
+            background-color: #393960;
+            padding: 10px;
+            border-radius: 5px;
+            color: #e0e0ff;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #a0a0a0;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Welcome to the Bitcoin Movement Prediction API!</h1>
+        <p class="subtitle">
+            This API predicts whether the Bitcoin price will go up in the next 15 minutes.
+        </p>
+
+        <h3>Available Endpoints:</h3>
+        <ul class="endpoint-list">
+            <li><div class="endpoint"><strong>/predict</strong>: Send market indicators to get a price movement prediction (1: Up, 0: Down).</div></li>
+            <li><div class="endpoint"><strong>/docs</strong>: Interactive API documentation (Swagger UI).</div></li>
+        </ul>
+
+        <div class="footer">
+            <p><em>📊 Model trained on recent BTC 15-min interval data using indicators like RSI, SMA, MACD...</em></p>
+        </div>
+    </div>
+</body>
+</html>

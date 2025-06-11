@@ -1,0 +1,86 @@
+# groups:
+#   - name: api_alerts
+#     rules:
+#       - alert: HighErrorRate
+#         expr: increase(api_error_count[5m]) / increase(api_request_count[5m]) > 0.5
+#         for: 2m
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: "Tỉ lệ lỗi API > 50% trong 5 phút qua"
+#       - alert: SlowLatency
+#         expr: histogram_quantile(0.95, sum(rate(api_request_latency_seconds_bucket[5m])) by (le)) > 1
+#         for: 2m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "Latency P95 > 1s trong 5 phút qua"
+
+#   - name: system_alerts
+#     rules:
+#       - alert: HighCPUUsage
+#         expr: sum(rate(node_cpu_seconds_total{mode!="idle"}[5m])) by (instance) < 0.9
+#         for: 30s
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: "CPU usage > 90% trong 5 phút qua"
+#       - alert: HighMemoryUsage
+#         expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+#         for: 2m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "Memory usage > 90% trong 5 phút qua"    
+
+groups:
+  - name: api_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[30s]) / rate(http_requests_total[30s]) > 0.5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tỉ lệ lỗi API > 50% trong 5 phút qua"
+      - alert: SlowLatency
+        expr: histogram_quantile(0.95, sum(rate(inference_time_seconds_bucket[5m])) by (le)) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Inference latency P95 > 1s trong 5 phút qua"
+      - alert: LowConfidenceScore
+        expr: prediction_confidence < 0.6
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Confidence score < 0.6"
+  
+  - name: system_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: sum(rate(node_cpu_seconds_total{mode!="idle"}[5m])) by (instance) > 0.85
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "CPU usage > 85% trong 5 phút qua"
+      - alert: HighMemoryUsage
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.15
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory usage > 85% trong 2 phút qua"
+
+  - name: fake_alerts
+    rules:
+      - alert: FakeAlert
+        expr: vector(1)  # Luôn luôn true, chỉ để test
+        for: 10s
+        labels:
+          severity: info
+        annotations:
+          summary: "Đây là fake alert để test"
