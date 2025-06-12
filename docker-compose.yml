@@ -82,7 +82,7 @@ services:
       - '3000:3000'
     volumes:
       - grafana_storage:/var/lib/grafana
-      - ./grafana:/etc/grafana
+      - ./grafana/dashboard.json:/etc/grafana/dashboard.json:ro
     networks:
       - monitoring-net
     depends_on:
