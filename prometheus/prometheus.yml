@@ -11,17 +11,16 @@ rule_files:
   - "/etc/prometheus/alert.rules.yml"    # file alert.rule trong container
 
 scrape_configs:
-  # # 1. Scrape chính Prometheus (để biết prometheus vẫn alive)
-  # - job_name: "app"
-  #   static_configs:
-  #     - targets: ["backend:8120"]  
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]       
 
-  # 2. Scrape Node Exporter (system metrics)
+  # Scrape Node Exporter (system metrics)
   - job_name: "node_exporter"
     static_configs:
       - targets: ["node_exporter:9100"]    # “node_exporter” sẽ là service name trong Compose
 
-  # 3. API 
+  # API 
   - job_name: "api"
     metrics_path: /metrics
     static_configs:

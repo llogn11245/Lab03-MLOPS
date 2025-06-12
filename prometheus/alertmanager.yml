@@ -1,50 +1,3 @@
-# # ===========================
-# # ALERTMANAGER CONFIG: EMAIL
-# # ===========================
-
-# # global:
-# #   # Cấu hình SMTP của Gmail
-# #   smtp_smarthost: 'smtp.gmail.com:587'
-# #   smtp_from: 'longgg11245@gmail.com'        # Thay bằng email của bạn (được dùng làm địa chỉ "From")
-# #   smtp_auth_username: 'longgg11245@gmail.com'
-# #   smtp_auth_password: 'scpyogixrblrhlkk'    # Thay bằng App Password (đã tạo trong Google Account)
-# #   smtp_require_tls: true
-
-# route:
-#   # Chỉ định rằng tất cả alert sẽ gửi đến receiver tên "gmail"
-#   receiver: 'email_notifications'
-#   repeat_interval: 30s
-#   group_wait: 15s
-#   group_interval: 15s
-
-# receivers:
-#   - name: 'email_notifications'
-#     email_configs:
-#       - to: longgg11245@gmail.com   # Thay bằng email bạn muốn nhận cảnh báo
-#         from: longgg11245@gmail.com      
-#         auth_username: 'longgg11245@gmail.com'
-#         auth_password: 'scpyogixrblrhlkk'  # Thay bằng App Password
-#         smarthost: 'smtp.gmail.com:587' 
-#         require_tls 
-#         send_resolved: true                   # Gửi cả mail khi alert đã được giải quyết (tuỳ chọn)
-#         subject: '[ALERT] {{ .GroupLabels.alertname }}'
-#         body: >-
-#           Alert: {{ .Annotations.summary }}
-#           Trạng thái: {{ .Status }}
-#           Bắt đầu: {{ .StartsAt }}
-#           Kết thúc: {{ .EndsAt }}
-#           Link: {{ .GeneratorURL }}
-
-# # (Tùy chọn) Bạn có thể giữ hoặc xóa phần inhibit_rules nếu không cần:
-# # inhibit_rules:
-# #   - source_match:
-# #       severity: 'critical'
-# #     target_match:
-# #       severity: 'warning'
-# #     equal: ['alertname', 'instance']
-
-
-# monitoring/alertmanager.yml
 global:
   resolve_timeout: 5m
 
@@ -59,8 +12,8 @@ route:
   receiver: email-critical          # mặc định
   group_by:  ['alertname', 'instance']
   group_wait: 15s
-  group_interval: 2m
-  repeat_interval: 4h
+  group_interval: 1m
+  repeat_interval: 1m
 
   # Phân luồng theo severity
   routes:
