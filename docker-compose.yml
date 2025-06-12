@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    build: C:\HK6\test_docker\MLong\backend
+    build: ./backend
     container_name: backend_container
     ports:
       - "8120:8120"
