@@ -1,13 +1,23 @@
 version: '3.8'
 
 services:
+  # =================================================================
+  # Service: fluentd (nếu bạn muốn log collection)
+  # =================================================================
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    container_name: fluent-bit
+    volumes:
+      - ./fluentd/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./fluentd/parsers.conf:/fluent-bit/etc/parsers.conf
+      - /var/lib/docker:/var/lib/docker:ro
+      - /var/log:/var/log:ro
+      - ./backend/logs:/app/logs:ro
+    ports: ["2020:2020"]
+    restart: unless-stopped
+    networks: [monitoring-net]
+
   backend:
-    # For logging service, e long cx đíu bt nó có cần thiết ko nữa, ms coi có vài cái
-    logging:
-       driver: "fluentd"
-       options:
-         fluentd-address: "fluentd:24224"
-         tag: "backend.logs"
     build: ./backend
     container_name: backend_container
     ports:
@@ -15,6 +25,8 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8120
     networks:
       - monitoring-net
+    depends_on:
+      - fluent-bit
   # =================================================================
   # Service: Prometheus
   # =================================================================
@@ -93,21 +105,6 @@ services:
       - monitoring-net
     depends_on:
       - prometheus
-  
-  # =================================================================
-  # Service: fluentd (nếu bạn muốn log collection)
-  # =================================================================
-  fluentd:
-    image: fluent/fluentd:v1.16-debian
-    container_name: fluentd
-    restart: unless-stopped
-    volumes:
-      - ./logging/fluent.conf:/fluentd/etc/fluent.conf:ro
-    ports:
-      - '24224:24224'
-      - '24224:24224/udp'
-    networks:
-      - monitoring-net
 
 networks:
   monitoring-net:

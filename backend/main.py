@@ -7,6 +7,10 @@ import time
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+import logging
+
+logging.basicConfig(filename='./var/logs/app.log', level=logging.INFO)
+logging.info('This is an info message')
 
 class InputItem(BaseModel):
     Low: float
