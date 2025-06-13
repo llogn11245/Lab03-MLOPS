@@ -3,11 +3,11 @@ version: '3.8'
 services:
   backend:
     # For logging service, e long cx đíu bt nó có cần thiết ko nữa, ms coi có vài cái
-    # logging:
-    #   driver: "fluentd"
-    #   options:
-    #     fluentd-address: "fluentd:24224"
-    #     tag: "backend.logs"
+    logging:
+       driver: "fluentd"
+       options:
+         fluentd-address: "fluentd:24224"
+         tag: "backend.logs"
     build: ./backend
     container_name: backend_container
     ports:
