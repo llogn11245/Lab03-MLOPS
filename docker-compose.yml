@@ -2,6 +2,12 @@ version: '3.8'
 
 services:
   backend:
+    # For logging service, e long cx đíu bt nó có cần thiết ko nữa, ms coi có vài cái
+    # logging:
+    #   driver: "fluentd"
+    #   options:
+    #     fluentd-address: "fluentd:24224"
+    #     tag: "backend.logs"
     build: ./backend
     container_name: backend_container
     ports:
@@ -87,6 +93,21 @@ services:
       - monitoring-net
     depends_on:
       - prometheus
+  
+  # =================================================================
+  # Service: fluentd (nếu bạn muốn log collection)
+  # =================================================================
+  fluentd:
+    image: fluent/fluentd:v1.16-debian
+    container_name: fluentd
+    restart: unless-stopped
+    volumes:
+      - ./logging/fluent.conf:/fluentd/etc/fluent.conf:ro
+    ports:
+      - '24224:24224'
+      - '24224:24224/udp'
+    networks:
+      - monitoring-net
 
 networks:
   monitoring-net:
