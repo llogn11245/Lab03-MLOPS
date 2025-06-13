@@ -1,0 +1,16 @@
+FROM fluent/fluentd:v1.16-debian-1
+
+# Use root to install plugins
+USER root
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Install required gems (try both versions)
+RUN gem install fluent-plugin-grafana-loki || gem install fluent-plugin-loki || true
+
+# Create log directory
+RUN mkdir -p /fluentd/log && chown -R fluent:fluent /fluentd/log
+
+# Switch back to fluent user
+USER fluent

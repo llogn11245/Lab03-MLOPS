@@ -1,17 +1,59 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 import pickle
 import numpy as np
 import time
-from prometheus_client import Counter, Gauge, Histogram, generate_latest
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
 import logging
+import sys
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
-logging.basicConfig(filename='./var/logs/app.log', level=logging.INFO)
-logging.info('This is an info message')
+# ----- Logging config -----
+log_formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
 
+# Log to stdout/stderr → Fluentd capture
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setFormatter(log_formatter)
+
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setFormatter(log_formatter)
+
+# Log to file → Fluentd capture
+file_handler = logging.FileHandler("/var/log/fastapi_app.log")
+file_handler.setFormatter(log_formatter)
+
+logger = logging.getLogger("fastapi")
+logger.setLevel(logging.INFO)
+logger.addHandler(stdout_handler)
+logger.addHandler(stderr_handler)
+logger.addHandler(file_handler)
+
+# ----- FastAPI -----
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+templates = Jinja2Templates(directory="template")
+
+# ----- Load model -----
+model_dir = "./model/model.pkl"
+with open(model_dir, mode='rb') as file:
+    model = pickle.load(file)
+
+# ----- Prometheus metrics -----
+REQUEST_COUNT = Counter('request_count_total', 'Total number of requests')
+ERROR_COUNT = Counter('error_count_total', 'Total number of errors')
+LATENCY = Histogram('request_latency_seconds', 'Request latency in seconds')
+INFERENCE_TIME = Histogram('inference_time_seconds', 'Inference time in seconds')
+CONFIDENCE = Gauge('prediction_confidence', 'Confidence score of the prediction')
+
+# ----- Input schema -----
 class InputItem(BaseModel):
     Low: float
     High: float
@@ -29,34 +71,15 @@ class InputItem(BaseModel):
     MACD_12_26_9: float
     MACDs_12_26_9: float
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-templates = Jinja2Templates(directory="template")
-
-# Load model
-model_dir = "./model/model.pkl"
-with open(model_dir, mode='rb') as file:
-    model = pickle.load(file)
-
-# API metrics
-REQUEST_COUNT = Counter('request_count_total', 'Total number of requests')
-ERROR_COUNT = Counter('error_count_total', 'Total number of errors')
-LATENCY = Histogram('request_latency_seconds', 'Request latency in seconds')
-
-# Model metrics
-INFERENCE_TIME = Histogram('inference_time_seconds', 'Inference time in seconds')
-CONFIDENCE = Gauge('prediction_confidence', 'Confidence score of the prediction')
-
 @app.middleware("http")
 async def monitor_requests(request: Request, call_next):
     start_time = time.time()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        logger.exception(f"Unhandled exception for request {request.url}: {e}")
+        ERROR_COUNT.inc()
+        raise
     latency = time.time() - start_time
     REQUEST_COUNT.inc()
     LATENCY.observe(latency)
@@ -71,35 +94,30 @@ def read_root(request: Request):
 @app.post("/predict")
 def predict(data: InputItem):
     start_time = time.time()
-    arr = np.array([
-        [
-            data.Low,
-            data.High,
-            data.Close,
-            data.SMA_10,
-            data.RSI_14,
-            data.ATRr_14,
-            data.ADX_14,
-            data.DMP_14,
-            data.DMN_14,
-            data.SKEW_30,
-            data.SLOPE_1,
-            data.BBL_5_2_0,
-            data.BBU_5_2_0,
-            data.MACD_12_26_9,
-            data.MACDs_12_26_9
-        ]
-    ])
-    pred = model.predict(arr)[0]
-    confidence_score = model.predict_proba(arr)[0][pred]
-    end_time = time.time()
-    inference_time = end_time - start_time
+    arr = np.array([[
+        data.Low, data.High, data.Close, data.SMA_10, data.RSI_14, data.ATRr_14, data.ADX_14,
+        data.DMP_14, data.DMN_14, data.SKEW_30, data.SLOPE_1, data.BBL_5_2_0,
+        data.BBU_5_2_0, data.MACD_12_26_9, data.MACDs_12_26_9
+    ]])
+    try:
+        pred = model.predict(arr)[0]
+        confidence_score = model.predict_proba(arr)[0][pred]
+    except Exception as e:
+        logger.exception(f"Prediction failed for input: {data.dict()}")
+        ERROR_COUNT.inc()
+        raise
+
+    inference_time = time.time() - start_time
     INFERENCE_TIME.observe(inference_time)
     CONFIDENCE.set(confidence_score)
-    return {'prediction': int(pred),
-            'confidence': float(confidence_score),
-            'inference_time': inference_time
-            }
+
+    logger.info(f"Prediction requested | Prediction: {pred} | Confidence: {confidence_score:.4f} | Time: {inference_time:.4f}s | Input: {data.dict()}")
+
+    return {
+        'prediction': int(pred),
+        'confidence': float(confidence_score),
+        'inference_time': inference_time
+    }
 
 @app.get("/metrics")
 def metrics():

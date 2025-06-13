@@ -1,35 +1,66 @@
 version: '3.8'
 
 services:
-  # =================================================================
-  # Service: fluentd (nếu bạn muốn log collection)
-  # =================================================================
-  fluent-bit:
-    image: fluent/fluent-bit:latest
-    container_name: fluent-bit
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
     volumes:
-      - ./fluentd/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - ./fluentd/parsers.conf:/fluent-bit/etc/parsers.conf
-      - /var/lib/docker:/var/lib/docker:ro
+      - ./loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring-net
+
+  fluentd:
+    build: ./fluentd
+    container_name: fluentd
+    volumes:
+      - ./fluentd/fluentd.conf:/fluentd/etc/fluent.conf:ro
       - /var/log:/var/log:ro
-      - ./backend/logs:/app/logs:ro
-    ports: ["2020:2020"]
-    restart: unless-stopped
-    networks: [monitoring-net]
+      - /var/log/fastapi:/var/log/fastapi
+      - fluentd_log:/fluentd/log
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+      - "5140:5140/udp"
+      - "9880:9880"
+    networks:
+      - monitoring-net
+    environment:
+      - FLUENTD_CONF=fluent.conf
+    command: fluentd -c /fluentd/etc/fluent.conf -v
+    depends_on:
+      - loki
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9880 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   backend:
     build: ./backend
-    container_name: backend_container
+    container_name: fastapi
     ports:
       - "8120:8120"
-    command: uvicorn main:app --host 0.0.0.0 --port 8120
+    volumes:
+      - /var/log/fastapi:/var/log/fastapi
+    command: uvicorn main:app --host 0.0.0.0 --port 8120 --log-level info
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: "localhost:24224"
+        tag: fastapi.container
+        fluentd-async: "true"
+        fluentd-sub-second-precision: "true"
+    depends_on:
+      fluentd:
+        condition: service_healthy
     networks:
       - monitoring-net
-    depends_on:
-      - fluent-bit
-  # =================================================================
-  # Service: Prometheus
-  # =================================================================
+
   prometheus:
     image: prom/prometheus:v3.4.0
     container_name: prometheus
@@ -41,16 +72,14 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
     ports:
       - '9090:9090'
     networks:
       - monitoring-net
-    # depends_on:
-    #   - backend
 
-  # =================================================================
-  # Service: Alertmanager
-  # =================================================================
   alertmanager:
     image: prom/alertmanager:v0.28.1
     container_name: alertmanager
@@ -61,37 +90,32 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
     ports:
       - '9093:9093'
-    networks:
-      - monitoring-net
     depends_on:
       - prometheus
+    networks:
+      - monitoring-net
 
-  # =================================================================
-  # Service: Node Exporter
-  # =================================================================
   node_exporter:
     image: prom/node-exporter:v1.9.1
     container_name: node_exporter
     restart: unless-stopped
-    # Node Exporter expose port 9100
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     ports:
       - '9100:9100'
     networks:
       - monitoring-net
-    # Để Node Exporter có thể đo đạc host metrics (nếu chạy trên host),
-    # bạn có thể cần mount pid và root filesystem:
-    # pid: "host"
-    # network_mode: "host"
-    # volumes:
-    #   - /proc:/host/proc:ro
-    #   - /sys:/host/sys:ro
 
-
-  # =================================================================
-  # (Tùy chọn) Service: Grafana (nếu bạn muốn dashboard)
-  # =================================================================
   grafana:
     image: grafana/grafana:12.0.1
     container_name: grafana
@@ -101,10 +125,15 @@ services:
     volumes:
       - grafana_storage:/var/lib/grafana
       - ./grafana/dashboard.json:/etc/grafana/dashboard.json:ro
-    networks:
-      - monitoring-net
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
       - prometheus
+      - loki
+    networks:
+      - monitoring-net
 
 networks:
   monitoring-net:
@@ -114,3 +143,5 @@ volumes:
   prometheus_data:
   alertmanager_data:
   grafana_storage:
+  fluentd_log:
+  loki_data:
