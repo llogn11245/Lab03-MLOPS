@@ -3,9 +3,9 @@ global:
 
   # Cấu hình SMTP mặc định, áp dụng cho mọi email_configs
   smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'longgg11245@gmail.com'
-  smtp_auth_username: 'longgg11245@gmail.com'
-  smtp_auth_password: 'scpy ogix rblr hlkk'     
+  smtp_from: 'your_email'
+  smtp_auth_username: 'your_email'
+  smtp_auth_password: 'your_app_password'     
   smtp_require_tls: true
 
 route:
@@ -27,14 +27,14 @@ route:
 receivers:
   - name: email-warning
     email_configs:
-      - to: '22520809@gm.uit.edu.vn'
+      - to: 'your_receive_email'
         send_resolved: true
         headers:
           subject: '[WARNING] {{ .CommonAnnotations.summary }}'
 
   - name: email-critical
     email_configs:
-      - to: '22520809@gm.uit.edu.vn'
+      - to: 'your_receive_email'
         send_resolved: true
         headers:
           subject: '[CRITICAL] {{ .CommonAnnotations.summary }}'
