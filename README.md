@@ -3,7 +3,7 @@
 
 Dự án này cung cấp một API dự đoán nên mua/bán dựa trên giá Bicoin theo thời gian thực.
 
-Lab 3 này hướng dẫn cách thiết lập hệ thống giám sát và ghi log cho API học máy, sử dụng **Prometheus**, **Grafana**,**Loki** và **Fluent Bit**.
+Lab 3 này hướng dẫn cách thiết lập hệ thống giám sát và ghi log cho API học máy, sử dụng **Prometheus**, **Grafana**, **Loki**, ...
 
 ## 👥 Thành viên nhóm
 
@@ -23,7 +23,7 @@ Dự án thuộc môn học **MLOPS (CS317.P22)** với các thành viên:
 - Prometheus  
 - Grafana  
 - Node Exporter  
-- Fluent Bit  
+- Loki 
 - Alertmanager (tuỳ chọn)
 
 ## 🚀 Cài đặt và sử dụng
@@ -61,7 +61,7 @@ docker compose version
 | Prometheus       | 9090  |
 | Node Exporter    | 9100  |
 | Grafana          | 3000  |
-| Fluent Bit       | 2020  |
+| Loki       | 3100  |
 | Alertmanager     | 9093  |
 | FastAPI (API)    | 8070  |
 
@@ -129,6 +129,10 @@ receivers:
           subject: '[CRITICAL] {{ .CommonAnnotations.summary }}'
 ```
 **App Password được tạo theo hướng dẫn sau: https://support.google.com/accounts/answer/185833?hl=en**
+
+Sau khi hoàn tất các bước setup alertmanager bạn sẽ nhận được các mail warning và critical theo rules đã được đề ra. 
+
+![Alert](alert.png)
 
 ## 📺 Demo
 
