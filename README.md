@@ -63,7 +63,7 @@ docker compose version
 | Grafana          | 3000  |
 | Loki       | 3100  |
 | Alertmanager     | 9093  |
-| FastAPI (API)    | 8070  |
+| FastAPI (API)    | 8120  |
 
 Đảm bảo các cổng này không bị chặn trên máy bạn.
 
