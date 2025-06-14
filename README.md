@@ -130,6 +130,10 @@ receivers:
 ```
 **App Password được tạo theo hướng dẫn sau: https://support.google.com/accounts/answer/185833?hl=en**
 
+Sau khi hoàn tất các bước setup alertmanager bạn sẽ nhận được các mail warning và critical theo rules đã được đề ra. 
+
+![Alert](alert.png)
+
 ## 📺 Demo
 
 ### ✅ Giám sát hoạt động bình thường
